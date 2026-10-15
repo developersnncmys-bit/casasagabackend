@@ -1,7 +1,7 @@
 const { Suite, Addon, GalleryImage, Story, Booking, Enquiry, Setting } = require('../models');
 const ApiError = require('../helpers/ApiError');
 const catchAsync = require('../helpers/catchAsync');
-const { prepare, assertAvailable, availability } = require('../services/booking.service');
+const { prepare, assertAvailable, availability, stampStatus } = require('../services/booking.service');
 
 const str = (v, max = 2000) => String(v ?? '').trim().slice(0, max);
 const strip = ({ active, order, createdAt, updatedAt, ...rest }) => rest;
@@ -36,7 +36,7 @@ exports.content = catchAsync(async (req, res) => {
   });
 });
 
-/** POST /api/public/bookings — the website's booking form. Always arrives as a pending request. */
+/** POST /api/public/bookings — the website's booking form. The stay is confirmed straight away. */
 exports.createBooking = catchAsync(async (req, res) => {
   const b = req.body || {};
   const suite = await Suite.findOne({ _id: str(b.suite, 60), active: true });
@@ -53,16 +53,22 @@ exports.createBooking = catchAsync(async (req, res) => {
     email: str(b.email, 160),
     occasion: str(b.occasion, 80),
     notes: str(b.notes),
-    status: 'pending',
+    status: 'confirmed',
     source: 'website',
   });
+  Object.assign(data, stampStatus(data, null));
   // Another guest may have taken the last room since the form loaded
   await assertAvailable(data);
   // Keep the reference the guest already saw in WhatsApp, if it looks like one of ours
   if (/^CS[A-Z0-9]{4,10}$/.test(str(b.ref, 12)) && !(await Booking.exists({ ref: b.ref }))) data.ref = b.ref;
 
   const booking = await Booking.create(data);
-  res.status(201).json({ success: true, data: { ref: booking.ref, total: booking.total } });
+  // What the guest's confirmation screen shows — no internal fields
+  const { ref, suiteName, checkIn, checkOut, nights, guests, addonItems, rate, discount, taxRate, taxAmount, total, status } = booking.toJSON();
+  res.status(201).json({
+    success: true,
+    data: { ref, suiteName, checkIn, checkOut, nights, guests, addonItems, rate, discount, taxRate, taxAmount, total, status },
+  });
 });
 
 /**
