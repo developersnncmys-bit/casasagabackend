@@ -2,28 +2,19 @@ const path = require('path');
 const multer = require('multer');
 const ApiError = require('../helpers/ApiError');
 
+// Older local uploads saved to disk are still served from here
 const UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads');
 const TYPES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/avif': '.avif' };
 
-const storage = multer.diskStorage({
-  destination: UPLOAD_DIR,
-  filename: (req, file, cb) => {
-    const base =
-      path
-        .parse(file.originalname)
-        .name.toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .slice(0, 40) || 'image';
-    cb(null, `${base}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}${TYPES[file.mimetype]}`);
-  },
-});
+// Images are kept in memory and saved to MongoDB (GridFS) — serverless hosts like
+// Vercel have no lasting disk. Vercel also caps a request at 4.5 MB.
+const MAX_BYTES = 4 * 1024 * 1024;
 
 const uploadImage = multer({
-  storage,
-  limits: { fileSize: 8 * 1024 * 1024, files: 20 },
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_BYTES, files: 10 },
   fileFilter: (req, file, cb) =>
     TYPES[file.mimetype] ? cb(null, true) : cb(ApiError.badRequest('Use a JPG, PNG, WebP or AVIF image')),
 });
 
-module.exports = { uploadImage, UPLOAD_DIR };
+module.exports = { uploadImage, UPLOAD_DIR, TYPES, MAX_BYTES };

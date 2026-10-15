@@ -7,6 +7,7 @@ const morgan = require('morgan');
 const routes = require('./routes');
 const { notFound, errorHandler } = require('./middleware/error');
 const { UPLOAD_DIR } = require('./middleware/upload');
+const { serve: serveUpload } = require('./controllers/upload.controller');
 const { corsOrigins, isProduction } = require('./config/env');
 
 const app = express();
@@ -23,6 +24,8 @@ app.use(compression());
 app.use(express.json({ limit: '1mb' }));
 app.use(morgan(isProduction ? 'combined' : 'dev'));
 
+// Uploaded images: from MongoDB, or (older local uploads) from the uploads/ folder
+app.get('/uploads/:name', serveUpload);
 app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '365d', immutable: true }));
 app.use('/api', routes);
 

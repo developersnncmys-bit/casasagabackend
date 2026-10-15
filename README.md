@@ -16,7 +16,8 @@ npm run dev            # http://localhost:5000
 ## Structure
 
 ```
-server.js                 starts the API once MongoDB is connected
+server.js                 local: starts the API once MongoDB is connected
+api/index.js + vercel.json  Vercel: connects to MongoDB, then hands each request to Express
 src/app.js                Express app: helmet, CORS, JSON, logging, /uploads, /api
 src/config/               env, db connection, constants
 src/models/               Admin, Suite, Addon, GalleryImage, Story, Booking, Enquiry, Setting
@@ -26,7 +27,7 @@ src/services/             booking pricing and double-booking check
 src/middleware/           JWT auth, image upload, website refresh, error handler
 src/helpers/              ApiError, catchAsync, shared CRUD, slugs, JSON shape
 src/seed/seed.js          imports the website's data.js into MongoDB
-uploads/                  uploaded images, served at /uploads/<file>
+uploads/                  older local uploads (new images are stored in MongoDB)
 ```
 
 Responses are `{ success: true, data }` or `{ success: false, message, details? }`.
@@ -45,7 +46,7 @@ Admin routes need `Authorization: Bearer <token>` from `POST /api/auth/login`.
 | `/api/addons` | `price: null` means "Price on request" |
 | `/api/gallery`, `/api/stories` | gallery photos, guest reviews |
 | `GET/PUT /api/settings` | contact, policies, occasions, values, gallery categories |
-| `POST /api/uploads` | multipart `file` → `{ url, urls }` |
+| `POST /api/uploads` | multipart `file` (max 4 MB each) → `{ url, urls }`. Images are stored in MongoDB (GridFS) and served at `/uploads/<file>` |
 
 Public routes used by the website (no sign-in, rate-limited):
 
@@ -57,8 +58,17 @@ Public routes used by the website (no sign-in, rate-limited):
 
 After any change to suites, add-ons, gallery, stories or settings, the API calls `WEBSITE_URL/api/revalidate` with `REVALIDATE_SECRET`, so the website updates straight away.
 
-## Deploying
+## Deploying (Vercel)
 
-- Set `NODE_ENV=production`, a long random `JWT_SECRET`, the real `CORS_ORIGIN` (website and admin panel domains), `PUBLIC_URL`, `WEBSITE_URL` and `REVALIDATE_SECRET`.
-- On MongoDB Atlas, add the server's IP under Network Access.
-- `uploads/` is stored on local disk, so the host needs persistent storage. Serverless hosts like Vercel don't keep files.
+Live at https://casasagabackend.vercel.app. Pushing to `main` redeploys.
+
+Set these under Project → Settings → Environment Variables, then redeploy:
+
+- `NODE_ENV=production` hides error details from responses
+- `MONGO_URI`, `JWT_SECRET` (long and random), `JWT_EXPIRES_IN`
+- `CORS_ORIGIN`: the website and admin panel addresses, comma separated. Include `http://localhost:3000,http://localhost:3001` while developing locally
+- `PUBLIC_URL=https://casasagabackend.vercel.app`
+- `WEBSITE_URL`: the website's public address, for instant refresh. Vercel can't reach `localhost`, so a local website refreshes on its own every 60 seconds instead
+- `REVALIDATE_SECRET`: the same value as in the website's env
+
+On MongoDB Atlas → Network Access, allow `0.0.0.0/0`, because Vercel has no fixed IP. Uploaded images are stored in MongoDB, so nothing depends on Vercel's disk. Vercel limits a request to 4.5 MB, which is why images are capped at 4 MB.
