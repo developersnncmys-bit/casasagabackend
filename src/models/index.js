@@ -7,4 +7,5 @@ module.exports = {
   Booking: require('./Booking'),
   Enquiry: require('./Enquiry'),
   Setting: require('./Setting'),
+  Counter: require('./Counter'),
 };

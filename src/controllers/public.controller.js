@@ -1,7 +1,7 @@
 const { Suite, Addon, GalleryImage, Story, Booking, Enquiry, Setting } = require('../models');
 const ApiError = require('../helpers/ApiError');
 const catchAsync = require('../helpers/catchAsync');
-const { prepare } = require('../services/booking.service');
+const { prepare, assertAvailable, availability } = require('../services/booking.service');
 
 const str = (v, max = 2000) => String(v ?? '').trim().slice(0, max);
 const strip = ({ active, order, createdAt, updatedAt, ...rest }) => rest;
@@ -56,11 +56,22 @@ exports.createBooking = catchAsync(async (req, res) => {
     status: 'pending',
     source: 'website',
   });
+  // Another guest may have taken the last room since the form loaded
+  await assertAvailable(data);
   // Keep the reference the guest already saw in WhatsApp, if it looks like one of ours
   if (/^CS[A-Z0-9]{4,10}$/.test(str(b.ref, 12)) && !(await Booking.exists({ ref: b.ref }))) data.ref = b.ref;
 
   const booking = await Booking.create(data);
   res.status(201).json({ success: true, data: { ref: booking.ref, total: booking.total } });
+});
+
+/**
+ * GET /api/public/availability?checkIn=&checkOut= — which suites still have a room for
+ * every night of the stay. Only ids and counts; no guest details.
+ */
+exports.availability = catchAsync(async (req, res) => {
+  const rows = await availability(str(req.query.checkIn, 10), str(req.query.checkOut, 10));
+  res.json({ success: true, data: rows.map(({ id, available, free }) => ({ id, available, free })) });
 });
 
 /** POST /api/public/enquiries — the website's contact form. */

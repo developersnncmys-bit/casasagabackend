@@ -16,6 +16,8 @@ const suiteSchema = new mongoose.Schema(
     accent: { type: String, default: '#d8b56a' },
     size: { type: String, default: '' },
     guests: { type: String, default: '' },
+    // How many rooms of this suite type exist — that many stays can overlap
+    inventory: { type: Number, min: 1, max: 50, default: 1 },
     blurb: { type: String, default: '' },
     story: { type: String, default: '' },
     features: [{ type: String, trim: true }],

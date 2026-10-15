@@ -15,6 +15,15 @@ const settingSchema = new mongoose.Schema(
     occasions: [String],
     values: [{ _id: false, title: String, text: String }],
     galleryCategories: [String],
+    // Printed on invoices
+    invoice: {
+      businessName: { type: String, default: 'CasaSaga' },
+      gstin: { type: String, default: '' },
+      // % added on top of the stay; 0 = no tax line
+      taxRate: { type: Number, min: 0, max: 100, default: 0 },
+      prefix: { type: String, default: 'CS' },
+      note: { type: String, default: 'Thank you for celebrating with us at CasaSaga.' },
+    },
   },
   { timestamps: true },
 );

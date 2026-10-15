@@ -9,6 +9,7 @@ const formLimit = rateLimit({ windowMs: 10 * 60 * 1000, limit: 15, standardHeade
   message: { success: false, message: 'Too many requests — please try again in a few minutes' } });
 
 router.get('/content', ctrl.content);
+router.get('/availability', ctrl.availability);
 router.post('/bookings', formLimit, ctrl.createBooking);
 router.post('/enquiries', formLimit, ctrl.createEnquiry);
 
