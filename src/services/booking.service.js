@@ -85,7 +85,8 @@ async function prepare(data, previous) {
 
   // Nightly rate: one the admin typed wins; moving to another suite takes that suite's
   // price; otherwise the rate already agreed for this booking stays.
-  const sentRate = data.rate !== undefined && data.rate !== '' && data.rate !== null;
+  // 0 / empty means "not given" — older bookings carry a default rate of 0
+  const sentRate = Number(data.rate) > 0;
   const typedNewRate = sentRate && (!previous || Number(data.rate) !== previous.rate);
   let rate;
   if (typedNewRate) rate = Number(data.rate);
