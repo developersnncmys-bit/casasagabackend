@@ -8,7 +8,7 @@ const routes = require('./routes');
 const { notFound, errorHandler } = require('./middleware/error');
 const { UPLOAD_DIR } = require('./middleware/upload');
 const { serve: serveUpload } = require('./controllers/upload.controller');
-const { corsOrigins, isProduction } = require('./config/env');
+const { corsOrigins, builtInOrigins, isProduction } = require('./config/env');
 
 const app = express();
 
@@ -17,7 +17,8 @@ app.set('trust proxy', 1);
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(
   cors({
-    origin: (origin, cb) => cb(null, !origin || corsOrigins.length === 0 || corsOrigins.includes(origin)),
+    origin: (origin, cb) =>
+      cb(null, !origin || corsOrigins.length === 0 || corsOrigins.includes(origin) || builtInOrigins.some((re) => re.test(origin))),
   }),
 );
 app.use(compression());
