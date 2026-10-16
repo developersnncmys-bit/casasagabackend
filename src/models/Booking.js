@@ -68,6 +68,7 @@ const bookingSchema = new mongoose.Schema(
     // Invoice — numbered the first time one is issued
     invoiceNo: { type: String, unique: true, sparse: true },
     invoiceDate: Date,
+    invoiceUrl: { type: String, default: '' }, // shareable link to the invoice PDF
   },
   { timestamps: true },
 );

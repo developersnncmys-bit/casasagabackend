@@ -7,6 +7,7 @@ const UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads');
 const TYPES = {
   'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/avif': '.avif',
   'video/mp4': '.mp4', 'video/webm': '.webm', 'video/quicktime': '.mov',
+  'application/pdf': '.pdf', // booking invoices, so they can be shared as a link
 };
 const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
 
@@ -18,7 +19,7 @@ const uploadImage = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_BYTES, files: 10 },
   fileFilter: (req, file, cb) =>
-    TYPES[file.mimetype] ? cb(null, true) : cb(ApiError.badRequest('Use a JPG, PNG, WebP or AVIF image, or an MP4, WebM or MOV video')),
+    TYPES[file.mimetype] ? cb(null, true) : cb(ApiError.badRequest('Use a JPG, PNG, WebP or AVIF image, an MP4, WebM or MOV video, or a PDF')),
 });
 
 module.exports = { uploadImage, UPLOAD_DIR, TYPES, VIDEO_TYPES, MAX_BYTES };
