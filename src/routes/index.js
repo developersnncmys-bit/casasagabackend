@@ -12,7 +12,6 @@ router.use('/public', require('./public.routes'));
 router.use('/auth', require('./auth.routes'));
 router.use('/dashboard', require('./dashboard.routes'));
 router.use('/bookings', require('./booking.routes'));
-router.use('/enquiries', require('./enquiry.routes'));
 // Website content — every change refreshes the public site
 router.use('/suites', revalidateWebsite, require('./suite.routes'));
 router.use('/addons', revalidateWebsite, require('./addon.routes'));

@@ -1,7 +1,7 @@
 const Setting = require('../models/Setting');
 const catchAsync = require('../helpers/catchAsync');
 
-const FIELDS = ['contact', 'policies', 'occasions', 'values', 'galleryCategories', 'invoice'];
+const FIELDS = ['contact', 'policies', 'occasions', 'values', 'galleryCategories', 'invoice', 'locations'];
 
 exports.get = catchAsync(async (req, res) => {
   res.json({ success: true, data: await Setting.get() });

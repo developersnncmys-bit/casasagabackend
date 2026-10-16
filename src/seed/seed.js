@@ -2,7 +2,7 @@
  * Fills MongoDB from the website's content (casasagawebsite/components/data.js)
  * and creates the admin account.
  *
- *   npm run seed         — only fills empty collections; never touches bookings or enquiries
+ *   npm run seed         — only fills empty collections; never touches bookings
  *   npm run seed:force   — replaces suites, add-ons, gallery, stories and settings with the website's
  */
 require('dotenv').config();

@@ -15,6 +15,18 @@ const settingSchema = new mongoose.Schema(
     occasions: [String],
     values: [{ _id: false, title: String, text: String }],
     galleryCategories: [String],
+    // The properties, e.g. Banashankari 6th Stage and JP Nagar 7th Phase
+    locations: [
+      {
+        _id: false,
+        id: { type: String, required: true, trim: true, lowercase: true },
+        name: { type: String, required: true, trim: true },
+        address: [String],
+        mapUrl: { type: String, default: '' },
+        // What the website's embedded map searches for: an address or "lat,lng"
+        mapQuery: { type: String, default: '' },
+      },
+    ],
     // Printed on invoices
     invoice: {
       businessName: { type: String, default: 'CasaSaga' },

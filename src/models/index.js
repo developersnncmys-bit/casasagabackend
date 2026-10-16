@@ -5,7 +5,6 @@ module.exports = {
   GalleryImage: require('./GalleryImage'),
   Story: require('./Story'),
   Booking: require('./Booking'),
-  Enquiry: require('./Enquiry'),
   Setting: require('./Setting'),
   Counter: require('./Counter'),
 };

@@ -1,4 +1,4 @@
-const { Suite, Addon, GalleryImage, Story, Booking, Enquiry, Setting } = require('../models');
+const { Suite, Addon, GalleryImage, Story, Booking, Setting } = require('../models');
 const ApiError = require('../helpers/ApiError');
 const catchAsync = require('../helpers/catchAsync');
 const { prepare, assertAvailable, availability, stampStatus } = require('../services/booking.service');
@@ -29,6 +29,7 @@ exports.content = catchAsync(async (req, res) => {
       occasions: s.occasions,
       values: s.values,
       galleryCategories: ['All', ...(s.galleryCategories || [])],
+      locations: s.locations || [],
       pricing: {
         taxRate: s.invoice?.taxRate || 0,
         addonTaxRate: s.invoice?.addonTaxRate ?? 18,
@@ -86,18 +87,4 @@ exports.createBooking = catchAsync(async (req, res) => {
 exports.availability = catchAsync(async (req, res) => {
   const rows = await availability(str(req.query.checkIn, 10), str(req.query.checkOut, 10));
   res.json({ success: true, data: rows.map(({ id, available, free }) => ({ id, available, free })) });
-});
-
-/** POST /api/public/enquiries — the website's contact form. */
-exports.createEnquiry = catchAsync(async (req, res) => {
-  const b = req.body || {};
-  const enquiry = await Enquiry.create({
-    name: str(b.name, 120),
-    email: str(b.email, 160),
-    phone: str(b.phone, 30),
-    occasion: str(b.occasion, 80),
-    message: str(b.message, 5000),
-    status: 'new',
-  });
-  res.status(201).json({ success: true, data: { id: enquiry.id } });
 });

@@ -11,7 +11,7 @@ npm run seed           # imports the website's content (data.js) and creates the
 npm run dev            # http://localhost:5000
 ```
 
-`npm run seed` needs the website repo next to it (`WEBSITE_DIR`). It only fills empty collections and never touches bookings or enquiries. `npm run seed:force` replaces suites, add-ons, gallery, stories and settings.
+`npm run seed` needs the website repo next to it (`WEBSITE_DIR`). It only fills empty collections and never touches bookings. `npm run seed:force` replaces suites, add-ons, gallery, stories and settings.
 
 ## Structure
 
@@ -20,7 +20,7 @@ server.js                 local: starts the API once MongoDB is connected
 api/index.js + vercel.json  Vercel: connects to MongoDB, then hands each request to Express
 src/app.js                Express app: helmet, CORS, JSON, logging, /uploads, /api
 src/config/               env, db connection, constants
-src/models/               Admin, Suite, Addon, GalleryImage, Story, Booking, Enquiry, Setting
+src/models/               Admin, Suite, Addon, GalleryImage, Story, Booking, Setting, Counter
 src/controllers/          request handlers, one per resource
 src/routes/               Express routers, one per resource
 src/services/             booking pricing and double-booking check
@@ -41,16 +41,15 @@ Admin routes need `Authorization: Bearer <token>` from `POST /api/auth/login`.
 | Route | |
 | --- | --- |
 | `POST /api/auth/login`, `GET /api/auth/me`, `PUT /api/auth/password` | sign in, current admin, change password |
-| `GET /api/dashboard` | pending requests, new enquiries, revenue and nights this month, arrivals |
+| `GET /api/dashboard` | pending requests, revenue and nights this month, arrivals, bookings by source |
 | `/api/bookings` | list, create, get, update, delete. The server works out the bill (nights × rate + add-ons − discount + tax) and keeps the agreed prices on the booking |
 | `GET /api/bookings/availability?checkIn&checkOut&exclude` | rooms free per suite for those dates |
 | `POST /api/bookings/:id/confirm` `check-in` `check-out` `cancel` `reopen` | moves a stay along and records the time. `check-out` with `{ settle: true, paymentMode }` marks it fully paid |
 | `POST /api/bookings/:id/invoice` | gives the booking a sequential invoice number (`CS-2026-0001`) once, and returns the booking and invoice settings; the admin panel builds the PDF |
-| `/api/enquiries` | contact-form messages |
-| `/api/suites` | `id` is the URL slug (`tulum`). `inventory` is the number of rooms of that type. A suite with upcoming bookings can't be deleted |
+| `/api/suites` | `id` is the URL slug (`tulum`). `inventory` is the number of rooms of that type; `location` is a location id from settings. A suite with upcoming bookings can't be deleted |
 | `/api/addons` | `price: null` means "Price on request" |
 | `/api/gallery`, `/api/stories` | gallery photos, guest reviews |
-| `GET/PUT /api/settings` | contact, policies, occasions, values, gallery categories, invoice details (business name, GSTIN, default tax %, number prefix, note) |
+| `GET/PUT /api/settings` | contact, locations (name, address, map), policies, occasions, values, gallery categories, invoice details (business name, GSTIN, default tax %, number prefix, note) |
 | `POST /api/uploads` | multipart `file` (max 4 MB each) → `{ url, urls }`. Images are stored in MongoDB (GridFS) and served at `/uploads/<file>` |
 
 Public routes used by the website (no sign-in, rate-limited):
@@ -60,7 +59,6 @@ Public routes used by the website (no sign-in, rate-limited):
 | `GET /api/public/content` | everything the site shows, hidden items left out |
 | `GET /api/public/availability?checkIn&checkOut` | which suites still have a free room (no guest details) |
 | `POST /api/public/bookings` | booking form → **confirmed** booking (returns ref, dates, add-ons, total); `409` if the suite was taken in the meantime. Optional `source`: `instagram`, `facebook`, `google`, `whatsapp`, `referral` (else `website`) |
-| `POST /api/public/enquiries` | contact form → new enquiry |
 
 After any change to suites, add-ons, gallery, stories or settings, the API calls `WEBSITE_URL/api/revalidate` with `REVALIDATE_SECRET`, so the website updates straight away.
 
