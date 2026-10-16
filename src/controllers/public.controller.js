@@ -30,6 +30,7 @@ exports.content = catchAsync(async (req, res) => {
       values: s.values,
       galleryCategories: ['All', ...(s.galleryCategories || [])],
       locations: s.locations || [],
+      reels: s.reels || [],
       pricing: {
         taxRate: s.invoice?.taxRate || 0,
         addonTaxRate: s.invoice?.addonTaxRate ?? 18,

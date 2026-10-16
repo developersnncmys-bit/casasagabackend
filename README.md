@@ -49,7 +49,7 @@ Admin routes need `Authorization: Bearer <token>` from `POST /api/auth/login`.
 | `/api/suites` | `id` is the URL slug (`tulum`). `inventory` is the number of rooms of that type; `location` is a location id from settings; `featured` puts it on the home page. A suite with upcoming bookings can't be deleted |
 | `/api/addons` | `price: null` means "Price on request" |
 | `/api/gallery`, `/api/stories` | gallery photos, guest reviews |
-| `GET/PUT /api/settings` | contact, locations (name, address, map), policies, occasions, values, gallery categories, invoice details (business name, GSTIN, default tax %, number prefix, note) |
+| `GET/PUT /api/settings` | contact (incl. Instagram link), Instagram reels, locations (name, address, map), policies, occasions, values, gallery categories, invoice details (business name, GSTIN, default tax %, number prefix, note) |
 | `POST /api/uploads` | multipart `file` (max 4 MB each) → `{ url, urls }`. Images are stored in MongoDB (GridFS) and served at `/uploads/<file>` |
 
 Public routes used by the website (no sign-in, rate-limited):

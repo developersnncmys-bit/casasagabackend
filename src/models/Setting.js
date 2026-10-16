@@ -10,11 +10,14 @@ const settingSchema = new mongoose.Schema(
       tel: String,
       whatsapp: String,
       mapUrl: String,
+      instagram: String, // Instagram page link, for the "Follow us" button
     },
     policies: [{ _id: false, label: String, value: String }],
     occasions: [String],
     values: [{ _id: false, title: String, text: String }],
     galleryCategories: [String],
+    // Instagram reel links shown on the home page
+    reels: [String],
     // The properties, e.g. Banashankari 6th Stage and JP Nagar 7th Phase
     locations: [
       {
