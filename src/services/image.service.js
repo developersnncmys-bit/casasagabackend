@@ -32,6 +32,7 @@ async function findImage(filename) {
   return doc || null;
 }
 
-const openImage = (doc) => bucket().openDownloadStream(doc._id);
+// start/end (inclusive) stream just part of a file — used for video playback
+const openImage = (doc, range) => bucket().openDownloadStream(doc._id, range ? { start: range.start, end: range.end + 1 } : undefined);
 
-module.exports = { saveImage, findImage, openImage };
+module.exports = { saveImage, findImage, openImage, safeName, bucket };

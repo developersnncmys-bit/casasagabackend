@@ -23,7 +23,7 @@ function errorHandler(err, req, res, next) {
   if (err.name === 'JsonWebTokenError') error = ApiError.unauthorized('Your session is not valid — sign in again');
   if (err.name === 'TokenExpiredError') error = ApiError.unauthorized('Your session has expired — sign in again');
   if (err instanceof multer.MulterError) {
-    error = ApiError.badRequest(err.code === 'LIMIT_FILE_SIZE' ? 'Images must be 4 MB or smaller' : err.message);
+    error = ApiError.badRequest(err.code === 'LIMIT_FILE_SIZE' ? 'Files sent in one go must be 4 MB or smaller — videos are uploaded in pieces' : err.message);
   }
   if (err.type === 'entity.parse.failed') error = ApiError.badRequest('The request body is not valid JSON');
 
