@@ -2,6 +2,7 @@ const { Suite, Addon, GalleryImage, Story, Booking, Enquiry, Setting } = require
 const ApiError = require('../helpers/ApiError');
 const catchAsync = require('../helpers/catchAsync');
 const { prepare, assertAvailable, availability, stampStatus } = require('../services/booking.service');
+const { WEBSITE_SOURCES } = require('../config/constants');
 
 const str = (v, max = 2000) => String(v ?? '').trim().slice(0, max);
 const strip = ({ active, order, createdAt, updatedAt, ...rest }) => rest;
@@ -59,7 +60,8 @@ exports.createBooking = catchAsync(async (req, res) => {
     occasion: str(b.occasion, 80),
     notes: str(b.notes),
     status: 'confirmed',
-    source: 'website',
+    // e.g. "instagram" when the guest followed a link from Instagram
+    source: WEBSITE_SOURCES.includes(str(b.source, 20)) ? str(b.source, 20) : 'website',
   });
   Object.assign(data, stampStatus(data, null));
   // Another guest may have taken the last room since the form loaded

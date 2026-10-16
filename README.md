@@ -59,7 +59,7 @@ Public routes used by the website (no sign-in, rate-limited):
 | --- | --- |
 | `GET /api/public/content` | everything the site shows, hidden items left out |
 | `GET /api/public/availability?checkIn&checkOut` | which suites still have a free room (no guest details) |
-| `POST /api/public/bookings` | booking form → **confirmed** booking (returns ref, dates, add-ons, total); `409` if the suite was taken in the meantime |
+| `POST /api/public/bookings` | booking form → **confirmed** booking (returns ref, dates, add-ons, total); `409` if the suite was taken in the meantime. Optional `source`: `instagram`, `facebook`, `google`, `whatsapp`, `referral` (else `website`) |
 | `POST /api/public/enquiries` | contact form → new enquiry |
 
 After any change to suites, add-ons, gallery, stories or settings, the API calls `WEBSITE_URL/api/revalidate` with `REVALIDATE_SECRET`, so the website updates straight away.
