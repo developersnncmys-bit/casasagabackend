@@ -28,6 +28,7 @@ exports.content = catchAsync(async (req, res) => {
       policies: s.policies,
       occasions: s.occasions,
       values: s.values,
+      refundPolicy: s.refundPolicy,
       galleryCategories: ['All', ...(s.galleryCategories || [])],
       locations: s.locations || [],
       reels: s.reels || [],

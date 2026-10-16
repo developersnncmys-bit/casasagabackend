@@ -15,6 +15,8 @@ const settingSchema = new mongoose.Schema(
     policies: [{ _id: false, label: String, value: String }],
     occasions: [String],
     values: [{ _id: false, title: String, text: String }],
+    // Cancellation & refund policy page: one titled point each
+    refundPolicy: [{ _id: false, title: String, text: String }],
     galleryCategories: [String],
     // Instagram reel links shown on the home page
     reels: [String],
