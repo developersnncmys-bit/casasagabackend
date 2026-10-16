@@ -29,6 +29,8 @@ const suiteSchema = new mongoose.Schema(
     gallery: [String],
     order: { type: Number, default: 0 },
     active: { type: Boolean, default: true },
+    // Shown in the home page's suites section (the rest are on the Suites page)
+    featured: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

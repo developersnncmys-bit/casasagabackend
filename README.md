@@ -46,7 +46,7 @@ Admin routes need `Authorization: Bearer <token>` from `POST /api/auth/login`.
 | `GET /api/bookings/availability?checkIn&checkOut&exclude` | rooms free per suite for those dates |
 | `POST /api/bookings/:id/confirm` `check-in` `check-out` `cancel` `reopen` | moves a stay along and records the time. `check-out` with `{ settle: true, paymentMode }` marks it fully paid |
 | `POST /api/bookings/:id/invoice` | gives the booking a sequential invoice number (`CS-2026-0001`) once, and returns the booking and invoice settings; the admin panel builds the PDF |
-| `/api/suites` | `id` is the URL slug (`tulum`). `inventory` is the number of rooms of that type; `location` is a location id from settings. A suite with upcoming bookings can't be deleted |
+| `/api/suites` | `id` is the URL slug (`tulum`). `inventory` is the number of rooms of that type; `location` is a location id from settings; `featured` puts it on the home page. A suite with upcoming bookings can't be deleted |
 | `/api/addons` | `price: null` means "Price on request" |
 | `/api/gallery`, `/api/stories` | gallery photos, guest reviews |
 | `GET/PUT /api/settings` | contact, locations (name, address, map), policies, occasions, values, gallery categories, invoice details (business name, GSTIN, default tax %, number prefix, note) |
