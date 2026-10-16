@@ -21,6 +21,9 @@ const settingSchema = new mongoose.Schema(
       gstin: { type: String, default: '' },
       // % added on top of the stay; 0 = no tax line
       taxRate: { type: Number, min: 0, max: 100, default: 0 },
+      // Added to every booking: a fixed ₹ amount, or a % of the base fee (rate × nights)
+      convenienceFee: { type: Number, min: 0, default: 0 },
+      convenienceFeeType: { type: String, enum: ['fixed', 'percent'], default: 'fixed' },
       prefix: { type: String, default: 'CS' },
       note: { type: String, default: 'Thank you for celebrating with us at CasaSaga.' },
     },

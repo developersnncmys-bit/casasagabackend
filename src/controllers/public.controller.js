@@ -28,6 +28,11 @@ exports.content = catchAsync(async (req, res) => {
       occasions: s.occasions,
       values: s.values,
       galleryCategories: ['All', ...(s.galleryCategories || [])],
+      pricing: {
+        taxRate: s.invoice?.taxRate || 0,
+        convenienceFee: s.invoice?.convenienceFee || 0,
+        convenienceFeeType: s.invoice?.convenienceFeeType || 'fixed',
+      },
       suites: plain(suites),
       addons: plain(addons),
       gallery: plain(gallery).map(({ id, ...g }) => g),
@@ -64,10 +69,10 @@ exports.createBooking = catchAsync(async (req, res) => {
 
   const booking = await Booking.create(data);
   // What the guest's confirmation screen shows — no internal fields
-  const { ref, suiteName, checkIn, checkOut, nights, guests, addonItems, rate, discount, taxRate, taxAmount, total, status } = booking.toJSON();
+  const { ref, suiteName, checkIn, checkOut, nights, guests, addonItems, rate, roomTotal, addonTotal, convenienceFee, discount, taxRate, taxAmount, total, status } = booking.toJSON();
   res.status(201).json({
     success: true,
-    data: { ref, suiteName, checkIn, checkOut, nights, guests, addonItems, rate, discount, taxRate, taxAmount, total, status },
+    data: { ref, suiteName, checkIn, checkOut, nights, guests, addonItems, rate, roomTotal, addonTotal, convenienceFee, discount, taxRate, taxAmount, total, status },
   });
 });
 

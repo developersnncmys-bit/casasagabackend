@@ -45,6 +45,7 @@ const bookingSchema = new mongoose.Schema(
     nights: { type: Number, default: 0 },
     roomTotal: { type: Number, default: 0 },
     addonTotal: { type: Number, default: 0 },
+    convenienceFee: { type: Number, min: 0, default: 0 },
     discount: { type: Number, min: 0, default: 0 },
     taxRate: { type: Number, min: 0, max: 100, default: 0 },
     taxAmount: { type: Number, default: 0 },

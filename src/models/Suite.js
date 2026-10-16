@@ -18,6 +18,8 @@ const suiteSchema = new mongoose.Schema(
     guests: { type: String, default: '' },
     // How many rooms of this suite type exist — that many stays can overlap
     inventory: { type: Number, min: 1, max: 50, default: 1 },
+    // GST % for this suite; null = the default in Settings → Invoices & pricing
+    taxRate: { type: Number, min: 0, max: 100, default: null },
     blurb: { type: String, default: '' },
     story: { type: String, default: '' },
     features: [{ type: String, trim: true }],

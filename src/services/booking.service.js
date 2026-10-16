@@ -73,7 +73,7 @@ async function assertAvailable(data, excludeId) {
 
 /**
  * Checks the suite and add-ons exist and works out the bill:
- *   nights × rate + add-ons − discount, then tax at the booking's rate.
+ *   base fee (nights × rate) + add-ons + convenience fee − discount, then GST on that.
  * Prices are snapshotted on the booking — `previous` keeps the agreed rate and
  * add-on prices unless the suite changes or the admin sends new ones.
  */
@@ -105,13 +105,32 @@ async function prepare(data, previous) {
     return { id: a._id, title: a.title, price: price === '' || price === null || price === undefined ? null : money(price) };
   });
 
-  const settings = previous ? null : await Setting.get();
-  const taxRate = data.taxRate !== undefined && data.taxRate !== '' ? Number(data.taxRate) || 0 : previous ? previous.taxRate || 0 : settings?.invoice?.taxRate || 0;
-  const discount = money(data.discount);
-
+  const pricing = (await Setting.get()).invoice || {};
   const roomTotal = money(nights * rate);
   const addonTotal = money(addonItems.reduce((t, a) => t + (a.price || 0), 0));
-  const taxable = Math.max(roomTotal + addonTotal - discount, 0);
+
+  // A value the admin typed (different from what the booking had) wins; otherwise it is
+  // worked out again when the suite or dates change, and kept as agreed when they don't
+  const typed = (k) => data[k] !== undefined && data[k] !== '' && data[k] !== null && (!previous || Number(data[k]) !== previous[k]);
+  const stayChanged = !previous || previous.suite !== data.suite || previous.checkIn !== data.checkIn || previous.checkOut !== data.checkOut;
+
+  // GST: the suite's own rate, else the default from Settings
+  let taxRate;
+  if (typed('taxRate')) taxRate = Number(data.taxRate) || 0;
+  else if (stayChanged) taxRate = suite.taxRate ?? pricing.taxRate ?? 0;
+  else taxRate = previous.taxRate ?? 0;
+
+  // Convenience fee: fixed ₹ per booking, or a % of the base fee
+  let convenienceFee;
+  if (typed('convenienceFee')) convenienceFee = Number(data.convenienceFee) || 0;
+  else if (stayChanged || previous.rate !== rate) {
+    convenienceFee = pricing.convenienceFeeType === 'percent' ? (roomTotal * (pricing.convenienceFee || 0)) / 100 : pricing.convenienceFee || 0;
+  } else convenienceFee = previous.convenienceFee ?? 0;
+  convenienceFee = money(convenienceFee);
+
+  const discount = money(data.discount);
+  // GST is charged on the stay, the add-ons and the convenience fee, after any discount
+  const taxable = Math.max(roomTotal + addonTotal + convenienceFee - discount, 0);
   const taxAmount = money((taxable * taxRate) / 100);
 
   return {
@@ -123,6 +142,7 @@ async function prepare(data, previous) {
     addonItems,
     roomTotal,
     addonTotal,
+    convenienceFee,
     discount,
     taxRate,
     taxAmount,
