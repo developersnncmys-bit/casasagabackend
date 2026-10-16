@@ -99,13 +99,16 @@ async function prepare(data, previous) {
   const catalogue = ids.length ? await Addon.find({ _id: { $in: ids } }) : [];
   const given = new Map((data.addonItems || []).map((a) => [a.id, a]));
   const kept = new Map((previous?.addonItems || []).map((a) => [a.id, a]));
+  const pricing = (await Setting.get()).invoice || {};
   const addonItems = catalogue.map((a) => {
     const g = given.get(a._id);
-    const price = g && g.price !== undefined ? g.price : kept.has(a._id) ? kept.get(a._id).price : a.price;
-    return { id: a._id, title: a.title, price: price === '' || price === null || price === undefined ? null : money(price) };
+    const k = kept.get(a._id);
+    const price = g && g.price !== undefined ? g.price : k ? k.price : a.price;
+    // GST on an add-on: kept as agreed on this booking (older bookings taxed add-ons at the stay rate),
+    // else the add-on's own rate, else the add-on default from Settings
+    const taxRate = k ? k.taxRate ?? previous.taxRate ?? 0 : a.taxRate ?? pricing.addonTaxRate ?? 0;
+    return { id: a._id, title: a.title, price: price === '' || price === null || price === undefined ? null : money(price), taxRate };
   });
-
-  const pricing = (await Setting.get()).invoice || {};
   const roomTotal = money(nights * rate);
   const addonTotal = money(addonItems.reduce((t, a) => t + (a.price || 0), 0));
 
@@ -129,9 +132,12 @@ async function prepare(data, previous) {
   convenienceFee = money(convenienceFee);
 
   const discount = money(data.discount);
-  // GST is charged on the stay, the add-ons and the convenience fee, after any discount
-  const taxable = Math.max(roomTotal + addonTotal + convenienceFee - discount, 0);
-  const taxAmount = money((taxable * taxRate) / 100);
+  // GST on the stay (base fee + convenience fee − discount) at the suite's rate,
+  // and on each add-on at its own rate
+  const stayTaxable = Math.max(roomTotal + convenienceFee - discount, 0);
+  const stayTaxAmount = money((stayTaxable * taxRate) / 100);
+  const addonTaxAmount = money(addonItems.reduce((t, a) => t + ((a.price || 0) * (a.taxRate || 0)) / 100, 0));
+  const taxAmount = money(stayTaxAmount + addonTaxAmount);
 
   return {
     ...data,
@@ -145,8 +151,9 @@ async function prepare(data, previous) {
     convenienceFee,
     discount,
     taxRate,
+    addonTaxAmount,
     taxAmount,
-    total: money(taxable + taxAmount),
+    total: money(stayTaxable + addonTotal + taxAmount),
     amountPaid: money(data.amountPaid),
   };
 }

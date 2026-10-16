@@ -11,6 +11,8 @@ const addonItemSchema = new mongoose.Schema(
     title: { type: String, required: true },
     // null = price still to be agreed ("Price on request")
     price: { type: Number, default: null, min: 0 },
+    // GST % on this add-on
+    taxRate: { type: Number, min: 0, max: 100, default: 0 },
   },
   { _id: false },
 );
@@ -48,6 +50,7 @@ const bookingSchema = new mongoose.Schema(
     convenienceFee: { type: Number, min: 0, default: 0 },
     discount: { type: Number, min: 0, default: 0 },
     taxRate: { type: Number, min: 0, max: 100, default: 0 },
+    addonTaxAmount: { type: Number, default: 0 }, // part of taxAmount that is GST on add-ons
     taxAmount: { type: Number, default: 0 },
     total: { type: Number, default: 0 },
 

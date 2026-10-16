@@ -12,6 +12,8 @@ const addonSchema = new mongoose.Schema(
     img: { type: String, required: [true, 'Add a photo'] },
     // null = "Price on request"
     price: { type: Number, default: null, min: 0 },
+    // GST % for this add-on; null = the add-on default in Settings → Invoices & pricing
+    taxRate: { type: Number, min: 0, max: 100, default: null },
     order: { type: Number, default: 0 },
     active: { type: Boolean, default: true },
   },

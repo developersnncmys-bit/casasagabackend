@@ -12,8 +12,12 @@ const base = crud(Addon, {
       no: data.no || String(count + 1).padStart(2, '0'),
     };
   },
-  // An empty price means "Price on request"
-  beforeSave: (data) => ({ ...data, price: data.price === '' || data.price == null ? null : Number(data.price) }),
+  // An empty price means "Price on request"; an empty GST means "use the add-on default"
+  beforeSave: (data) => ({
+    ...data,
+    price: data.price === '' || data.price == null ? null : Number(data.price),
+    taxRate: data.taxRate === '' || data.taxRate == null ? null : Number(data.taxRate),
+  }),
 });
 
 module.exports = base;
