@@ -73,7 +73,7 @@ async function assertAvailable(data, excludeId) {
 
 /**
  * Checks the suite and add-ons exist and works out the bill:
- *   base fee (nights × rate) + add-ons + convenience fee − discount, then GST on that.
+ *   base fee (nights × rate) − discount + add-ons, GST on each, then the convenience fee (online bookings, after GST).
  * Prices are snapshotted on the booking — `previous` keeps the agreed rate and
  * add-on prices unless the suite changes or the admin sends new ones.
  */
@@ -123,21 +123,24 @@ async function prepare(data, previous) {
   else if (stayChanged) taxRate = suite.taxRate ?? pricing.taxRate ?? 0;
   else taxRate = previous.taxRate ?? 0;
 
-  // Convenience fee: fixed ₹ per booking, or a % of the base fee
-  let convenienceFee;
-  if (typed('convenienceFee')) convenienceFee = Number(data.convenienceFee) || 0;
-  else if (stayChanged || previous.rate !== rate) {
-    convenienceFee = pricing.convenienceFeeType === 'percent' ? (roomTotal * (pricing.convenienceFee || 0)) / 100 : pricing.convenienceFee || 0;
-  } else convenienceFee = previous.convenienceFee ?? 0;
-  convenienceFee = money(convenienceFee);
-
   const discount = money(data.discount);
-  // GST on the stay (base fee + convenience fee − discount) at the suite's rate,
-  // and on each add-on at its own rate
-  const stayTaxable = Math.max(roomTotal + convenienceFee - discount, 0);
+  // GST on the stay (base fee − discount) at the suite's rate, and on each add-on at its own rate
+  const stayTaxable = Math.max(roomTotal - discount, 0);
   const stayTaxAmount = money((stayTaxable * taxRate) / 100);
   const addonTaxAmount = money(addonItems.reduce((t, a) => t + ((a.price || 0) * (a.taxRate || 0)) / 100, 0));
   const taxAmount = money(stayTaxAmount + addonTaxAmount);
+  const subtotal = stayTaxable + addonTotal + taxAmount;
+
+  // Convenience fee: online (website) bookings only, added last — a % of the total
+  // after GST, or a fixed ₹ amount. Not taxed. Bookings made in the admin panel have
+  // none unless the admin types one.
+  const online = data.online ?? previous?.online ?? false;
+  let convenienceFee;
+  if (typed('convenienceFee')) convenienceFee = Number(data.convenienceFee) || 0;
+  else if (online) {
+    convenienceFee = pricing.convenienceFeeType === 'percent' ? (subtotal * (pricing.convenienceFee || 0)) / 100 : pricing.convenienceFee || 0;
+  } else convenienceFee = previous?.convenienceFee ?? 0;
+  convenienceFee = money(convenienceFee);
 
   return {
     ...data,
@@ -153,7 +156,8 @@ async function prepare(data, previous) {
     taxRate,
     addonTaxAmount,
     taxAmount,
-    total: money(stayTaxable + addonTotal + taxAmount),
+    online,
+    total: money(subtotal + convenienceFee),
     amountPaid: money(data.amountPaid),
   };
 }

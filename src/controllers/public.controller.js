@@ -62,6 +62,7 @@ exports.createBooking = catchAsync(async (req, res) => {
     occasion: str(b.occasion, 80),
     notes: str(b.notes),
     status: 'confirmed',
+    online: true,
     // e.g. "instagram" when the guest followed a link from Instagram
     source: WEBSITE_SOURCES.includes(str(b.source, 20)) ? str(b.source, 20) : 'website',
   });

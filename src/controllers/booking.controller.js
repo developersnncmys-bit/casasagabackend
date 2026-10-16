@@ -7,7 +7,7 @@ const { crud } = require('../helpers/crud');
 const { prepare, assertAvailable, availability, stampStatus } = require('../services/booking.service');
 
 // Fields only the server sets
-const SERVER_ONLY = ['invoiceNo', 'invoiceDate', 'suiteName', 'nights', 'roomTotal', 'addonTotal', 'addonTaxAmount', 'taxAmount', 'total'];
+const SERVER_ONLY = ['invoiceNo', 'invoiceDate', 'suiteName', 'nights', 'roomTotal', 'addonTotal', 'addonTaxAmount', 'taxAmount', 'total', 'online'];
 
 const base = crud(Booking, {
   name: 'Booking',
