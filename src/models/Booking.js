@@ -66,6 +66,7 @@ const bookingSchema = new mongoose.Schema(
     paymentStatus: { type: String, enum: PAYMENT_STATUSES, default: '' },
     holdUntil: Date,
     razorpayOrderId: { type: String, index: true, sparse: true },
+    onlineAmount: { type: Number, default: 0 }, // what Checkout charges (the total; ₹1 for test bookings)
     razorpayPaymentId: { type: String, default: '' },
     paidAt: Date,
 

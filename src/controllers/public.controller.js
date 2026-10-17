@@ -2,7 +2,7 @@ const { Suite, Addon, GalleryImage, Story, Booking, Setting } = require('../mode
 const ApiError = require('../helpers/ApiError');
 const catchAsync = require('../helpers/catchAsync');
 const { prepare, assertAvailable, availability, stampStatus } = require('../services/booking.service');
-const { WEBSITE_SOURCES, PAYMENT_HOLD_MINUTES } = require('../config/constants');
+const { WEBSITE_SOURCES, PAYMENT_HOLD_MINUTES, PAYMENT_TEST_EMAILS } = require('../config/constants');
 const payments = require('../services/razorpay.service');
 const { sendBookingConfirmation } = require('../services/mail.service');
 
@@ -105,7 +105,9 @@ exports.createBooking = catchAsync(async (req, res) => {
   data.holdUntil = new Date(Date.now() + PAYMENT_HOLD_MINUTES * 60000);
   const booking = await Booking.create(data);
   try {
-    const order = await payments.createOrder({ amount: booking.total, receipt: booking.ref, notes: { booking: booking.ref, suite: booking.suiteName } });
+    // Test bookings (PAYMENT_TEST_EMAILS) pay ₹1; everyone else pays the full total
+    booking.onlineAmount = PAYMENT_TEST_EMAILS.includes(booking.email) ? 1 : booking.total;
+    const order = await payments.createOrder({ amount: booking.onlineAmount, receipt: booking.ref, notes: { booking: booking.ref, suite: booking.suiteName, ...(booking.onlineAmount !== booking.total && { test: 'Rs 1 test payment' }) } });
     booking.razorpayOrderId = order.id;
     await booking.save();
   } catch (err) {
@@ -125,7 +127,7 @@ function guestView(booking) {
 const checkoutFor = (booking) => ({
   keyId: payments.keyId(),
   orderId: booking.razorpayOrderId,
-  amount: Math.round(booking.total * 100),
+  amount: Math.round((booking.onlineAmount || booking.total) * 100),
   currency: 'INR',
   holdUntil: booking.holdUntil,
   prefill: { name: booking.name, contact: booking.phone, email: booking.email || undefined },
@@ -137,7 +139,7 @@ async function markPaid(booking, paymentId) {
   booking.paymentStatus = 'paid';
   booking.razorpayPaymentId = paymentId;
   booking.paidAt = new Date();
-  booking.amountPaid = booking.total;
+  booking.amountPaid = booking.onlineAmount || booking.total; // ₹1 for a test booking
   booking.paymentMode = 'razorpay';
   booking.holdUntil = undefined;
   if (booking.status === 'pending' || booking.status === 'cancelled') {
