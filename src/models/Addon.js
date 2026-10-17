@@ -14,6 +14,8 @@ const addonSchema = new mongoose.Schema(
     price: { type: Number, default: null, min: 0 },
     // GST % for this add-on; null = the add-on default in Settings → Invoices & pricing
     taxRate: { type: Number, min: 0, max: 100, default: null },
+    // Locations (ids from Settings → locations) where it can be booked; empty = every location
+    locations: [{ type: String, trim: true }],
     order: { type: Number, default: 0 },
     active: { type: Boolean, default: true },
   },

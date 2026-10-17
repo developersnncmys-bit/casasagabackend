@@ -16,6 +16,10 @@ const suiteSchema = new mongoose.Schema(
     accent: { type: String, default: '#d8b56a' },
     size: { type: String, default: '' },
     guests: { type: String, default: '' },
+    // Guests: the price covers includedGuests; each guest beyond that pays extraGuestPrice a night; maxGuests at most
+    includedGuests: { type: Number, min: 1, max: 10, default: 2 },
+    maxGuests: { type: Number, min: 1, max: 10, default: 4 },
+    extraGuestPrice: { type: Number, min: 0, default: 0 },
     // How many rooms of this suite type exist — that many stays can overlap
     inventory: { type: Number, min: 1, max: 50, default: 1 },
     // Which property the suite is at — an id from Settings → locations (e.g. "banashankari")

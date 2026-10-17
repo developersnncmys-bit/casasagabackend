@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const toJSON = require('../helpers/toJSON');
-const { BOOKING_SOURCES, BOOKING_STATUSES, PAYMENT_MODES } = require('../config/constants');
+const { BOOKING_SOURCES, BOOKING_STATUSES, PAYMENT_MODES, PAYMENT_STATUSES } = require('../config/constants');
 
 const isDay = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -46,6 +46,10 @@ const bookingSchema = new mongoose.Schema(
     rate: { type: Number, min: 0, default: 0 }, // nightly price agreed for this stay
     nights: { type: Number, default: 0 },
     roomTotal: { type: Number, default: 0 },
+    // Guests beyond what the suite's price covers, at the agreed nightly charge each
+    extraGuests: { type: Number, default: 0 },
+    extraGuestRate: { type: Number, min: 0, default: 0 },
+    extraGuestTotal: { type: Number, default: 0 },
     addonTotal: { type: Number, default: 0 },
     convenienceFee: { type: Number, min: 0, default: 0 }, // online bookings: added after GST, not taxed
     online: { type: Boolean, default: false }, // made on the website
@@ -58,6 +62,12 @@ const bookingSchema = new mongoose.Schema(
     // Payment
     amountPaid: { type: Number, min: 0, default: 0 },
     paymentMode: { type: String, enum: PAYMENT_MODES, default: '' },
+    // Online payment (Razorpay) — website bookings wait for it, holding the room until holdUntil
+    paymentStatus: { type: String, enum: PAYMENT_STATUSES, default: '' },
+    holdUntil: Date,
+    razorpayOrderId: { type: String, index: true, sparse: true },
+    razorpayPaymentId: { type: String, default: '' },
+    paidAt: Date,
 
     // Timeline
     confirmedAt: Date,

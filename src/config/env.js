@@ -24,4 +24,10 @@ module.exports = {
   // The public website, refreshed whenever content changes
   websiteUrl: (process.env.WEBSITE_URL || '').replace(/\/$/, ''),
   revalidateSecret: process.env.REVALIDATE_SECRET || '',
+  // Razorpay (online payment on the website). Without keys, website bookings are confirmed without payment
+  razorpay: {
+    keyId: (process.env.RAZORPAY_KEY_ID || '').trim(),
+    keySecret: (process.env.RAZORPAY_KEY_SECRET || '').trim(),
+    webhookSecret: (process.env.RAZORPAY_WEBHOOK_SECRET || '').trim(),
+  },
 };

@@ -20,6 +20,9 @@ async function occupancy(checkIn, checkOut, { excludeId, suiteId } = {}) {
     status: { $in: HOLDING_STATUSES },
     checkIn: { $lt: checkOut },
     checkOut: { $gt: checkIn },
+    // A website booking still waiting for payment holds its room only until its hold runs out
+    // (once the team confirms it by hand, it holds the room like any other)
+    $or: [{ status: { $ne: 'pending' } }, { paymentStatus: { $ne: 'awaiting' } }, { holdUntil: { $gt: new Date() } }],
   };
   if (excludeId) query._id = { $ne: excludeId };
   if (suiteId) query.suite = suiteId;
@@ -73,7 +76,8 @@ async function assertAvailable(data, excludeId) {
 
 /**
  * Checks the suite and add-ons exist and works out the bill:
- *   base fee (nights × rate) − discount + add-ons, GST on each, then the convenience fee (online bookings, after GST).
+ *   base fee (nights × rate) + extra guests (nights × guests over what the price covers × charge) − discount
+ *   + add-ons, GST on each, then the convenience fee (online bookings, after GST).
  * Prices are snapshotted on the booking — `previous` keeps the agreed rate and
  * add-on prices unless the suite changes or the admin sends new ones.
  */
@@ -112,6 +116,19 @@ async function prepare(data, previous) {
   const roomTotal = money(nights * rate);
   const addonTotal = money(addonItems.reduce((t, a) => t + (a.price || 0), 0));
 
+  // Guests: the suite's price covers includedGuests; each guest beyond that pays the extra-guest
+  // charge every night, up to the suite's maximum
+  const guests = Math.max(Math.round(Number(data.guests) || 2), 1);
+  const maxGuests = suite.maxGuests || 10;
+  const guestsChanged = !previous || previous.guests !== guests || previous.suite !== data.suite;
+  if (guests > maxGuests && guestsChanged) throw ApiError.badRequest(`The ${suite.name} Suite takes up to ${maxGuests} guests`);
+  const extraGuests = Math.max(guests - (suite.includedGuests || 2), 0);
+  // The charge agreed when the extra guest was first added stays; otherwise the suite's current one
+  const extraGuestRate = money(
+    previous && previous.suite === data.suite && previous.extraGuests > 0 ? previous.extraGuestRate : suite.extraGuestPrice || 0,
+  );
+  const extraGuestTotal = money(nights * extraGuests * extraGuestRate);
+
   // A value the admin typed (different from what the booking had) wins; otherwise it is
   // worked out again when the suite or dates change, and kept as agreed when they don't
   const typed = (k) => data[k] !== undefined && data[k] !== '' && data[k] !== null && (!previous || Number(data[k]) !== previous[k]);
@@ -124,8 +141,8 @@ async function prepare(data, previous) {
   else taxRate = previous.taxRate ?? 0;
 
   const discount = money(data.discount);
-  // GST on the stay (base fee − discount) at the suite's rate, and on each add-on at its own rate
-  const stayTaxable = Math.max(roomTotal - discount, 0);
+  // GST on the stay (base fee + extra guests − discount) at the suite's rate, and on each add-on at its own rate
+  const stayTaxable = Math.max(roomTotal + extraGuestTotal - discount, 0);
   const stayTaxAmount = money((stayTaxable * taxRate) / 100);
   const addonTaxAmount = money(addonItems.reduce((t, a) => t + ((a.price || 0) * (a.taxRate || 0)) / 100, 0));
   const taxAmount = money(stayTaxAmount + addonTaxAmount);
@@ -150,6 +167,10 @@ async function prepare(data, previous) {
     addons: addonItems.map((a) => a.id),
     addonItems,
     roomTotal,
+    guests,
+    extraGuests,
+    extraGuestRate,
+    extraGuestTotal,
     addonTotal,
     convenienceFee,
     discount,

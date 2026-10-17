@@ -7,7 +7,9 @@ const { crud } = require('../helpers/crud');
 const { prepare, assertAvailable, availability, stampStatus } = require('../services/booking.service');
 
 // Fields only the server sets
-const SERVER_ONLY = ['invoiceNo', 'invoiceDate', 'suiteName', 'nights', 'roomTotal', 'addonTotal', 'addonTaxAmount', 'taxAmount', 'total', 'online'];
+const SERVER_ONLY = ['invoiceNo', 'invoiceDate', 'suiteName', 'nights', 'roomTotal', 'extraGuests', 'extraGuestRate', 'extraGuestTotal', 'addonTotal', 'addonTaxAmount', 'taxAmount', 'total', 'online',
+  // online payment — only Razorpay's confirmation changes these
+  'paymentStatus', 'holdUntil', 'razorpayOrderId', 'razorpayPaymentId', 'paidAt'];
 
 const base = crud(Booking, {
   name: 'Booking',

@@ -22,7 +22,8 @@ app.use(
   }),
 );
 app.use(compression());
-app.use(express.json({ limit: '1mb' }));
+// rawBody: the exact bytes, for checking Razorpay's webhook signature
+app.use(express.json({ limit: '1mb', verify: (req, res, buf) => { req.rawBody = buf.toString('utf8'); } }));
 app.use(morgan(isProduction ? 'combined' : 'dev'));
 
 // Uploaded images: from MongoDB, or (older local uploads) from the uploads/ folder

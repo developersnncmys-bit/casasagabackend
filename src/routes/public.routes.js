@@ -11,5 +11,8 @@ const formLimit = rateLimit({ windowMs: 10 * 60 * 1000, limit: 15, standardHeade
 router.get('/content', ctrl.content);
 router.get('/availability', ctrl.availability);
 router.post('/bookings', formLimit, ctrl.createBooking);
+// Online payment (Razorpay): Checkout's success reply, and Razorpay's own notification
+router.post('/bookings/:ref/pay', formLimit, ctrl.confirmPayment);
+router.post('/razorpay/webhook', ctrl.razorpayWebhook);
 
 module.exports = router;
