@@ -9,11 +9,11 @@ module.exports = {
   PAYMENT_STATUSES: ['', 'awaiting', 'paid'],
   // How long a website booking holds its room while the guest pays
   PAYMENT_HOLD_MINUTES: 15,
-  // TEMPORARY, for testing live payments: bookings made with these emails are charged ₹1
+  // For testing live payments: bookings made with these emails are charged ₹1
   // instead of the full amount. Empty the list to switch the test off.
-  PAYMENT_TEST_EMAILS: ['casasaga.in@gmail.com', 'dhanalakshmisb294@gmail.com'],
-  // TEMPORARY: true charges EVERY website booking ₹1 (testing live payments). Set back to false after testing!
-  PAYMENT_TEST_EVERYONE: true,
+  PAYMENT_TEST_EMAILS: [],
+  // true charges EVERY website booking ₹1 — only for testing live payments; keep false
+  PAYMENT_TEST_EVERYONE: false,
   // Bookings that count towards revenue
   EARNING_STATUSES: ['confirmed', 'checked-in', 'completed'],
   // Bookings that take up a room — a suite is unavailable once these fill its inventory
