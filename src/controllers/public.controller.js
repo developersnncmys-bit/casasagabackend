@@ -2,7 +2,7 @@ const { Suite, Addon, GalleryImage, Story, Booking, Setting } = require('../mode
 const ApiError = require('../helpers/ApiError');
 const catchAsync = require('../helpers/catchAsync');
 const { prepare, assertAvailable, availability, stampStatus } = require('../services/booking.service');
-const { WEBSITE_SOURCES, PAYMENT_HOLD_MINUTES, PAYMENT_TEST_EMAILS } = require('../config/constants');
+const { WEBSITE_SOURCES, PAYMENT_HOLD_MINUTES, PAYMENT_TEST_EMAILS, PAYMENT_TEST_EVERYONE } = require('../config/constants');
 const payments = require('../services/razorpay.service');
 const { sendBookingConfirmation } = require('../services/mail.service');
 
@@ -106,7 +106,7 @@ exports.createBooking = catchAsync(async (req, res) => {
   const booking = await Booking.create(data);
   try {
     // Test bookings (PAYMENT_TEST_EMAILS) pay ₹1; everyone else pays the full total
-    booking.onlineAmount = PAYMENT_TEST_EMAILS.includes(booking.email) ? 1 : booking.total;
+    booking.onlineAmount = PAYMENT_TEST_EVERYONE || PAYMENT_TEST_EMAILS.includes(booking.email) ? 1 : booking.total;
     const order = await payments.createOrder({ amount: booking.onlineAmount, receipt: booking.ref, notes: { booking: booking.ref, suite: booking.suiteName, ...(booking.onlineAmount !== booking.total && { test: 'Rs 1 test payment' }) } });
     booking.razorpayOrderId = order.id;
     await booking.save();
