@@ -4,6 +4,7 @@ const catchAsync = require('../helpers/catchAsync');
 const { prepare, assertAvailable, availability, stampStatus } = require('../services/booking.service');
 const { WEBSITE_SOURCES, PAYMENT_HOLD_MINUTES } = require('../config/constants');
 const payments = require('../services/razorpay.service');
+const { sendBookingConfirmation } = require('../services/mail.service');
 
 const str = (v, max = 2000) => String(v ?? '').trim().slice(0, max);
 const strip = ({ active, order, createdAt, updatedAt, ...rest }) => rest;
@@ -58,6 +59,8 @@ exports.createBooking = catchAsync(async (req, res) => {
   const b = req.body || {};
   const suite = await Suite.findOne({ _id: str(b.suite, 60), active: true });
   if (!suite) throw ApiError.badRequest('Choose a suite');
+  // The confirmation is emailed, so the website asks for an address
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str(b.email, 160))) throw ApiError.badRequest('Enter a valid email address for your confirmation');
 
   // Only add-ons offered at this suite's location (e.g. decorations at Banashankari 6th Stage only)
   const asked = Array.isArray(b.addons) ? b.addons.map((a) => str(a, 60)) : [];
@@ -92,6 +95,8 @@ exports.createBooking = catchAsync(async (req, res) => {
 
   if (!payments.enabled()) {
     const booking = await Booking.create(data);
+    // Sent before replying: on Vercel the function may stop once the reply has gone
+    await sendBookingConfirmation(booking);
     return res.status(201).json({ success: true, data: guestView(booking) });
   }
 
@@ -140,7 +145,10 @@ async function markPaid(booking, paymentId) {
     booking.confirmedAt = booking.confirmedAt || new Date();
     booking.cancelledAt = undefined;
   }
-  return booking.save();
+  await booking.save();
+  // The stay is confirmed now that it's paid — email the confirmation (once)
+  if (!booking.confirmationEmailAt) await sendBookingConfirmation(booking);
+  return booking;
 }
 
 /**

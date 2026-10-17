@@ -84,3 +84,15 @@ exports.invoice = catchAsync(async (req, res) => {
   }
   res.json({ success: true, data: { booking: doc, settings } });
 });
+
+/** POST /api/bookings/:id/email — (re)sends the booking confirmation email to the guest. */
+exports.emailConfirmation = catchAsync(async (req, res) => {
+  const mail = require('../services/mail.service');
+  const doc = await Booking.findById(req.params.id);
+  if (!doc) throw ApiError.notFound('Booking not found');
+  if (!mail.enabled()) throw ApiError.badRequest('Email isn’t set up on the server (SMTP_USER / SMTP_PASS)');
+  if (!doc.email) throw ApiError.badRequest('This booking has no email address — add one with Edit first');
+  if (doc.status === 'cancelled') throw ApiError.conflict("A cancelled booking can't be confirmed by email");
+  if (!(await mail.sendBookingConfirmation(doc))) throw new ApiError(502, "The email couldn't be sent — try again in a minute");
+  res.json({ success: true, data: doc });
+});

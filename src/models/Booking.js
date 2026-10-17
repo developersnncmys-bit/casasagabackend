@@ -79,6 +79,7 @@ const bookingSchema = new mongoose.Schema(
     invoiceNo: { type: String, unique: true, sparse: true },
     invoiceDate: Date,
     invoiceUrl: { type: String, default: '' }, // shareable link to the invoice PDF
+    confirmationEmailAt: Date, // when the booking confirmation email was last sent
   },
   { timestamps: true },
 );

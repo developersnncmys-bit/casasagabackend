@@ -24,6 +24,12 @@ module.exports = {
   // The public website, refreshed whenever content changes
   websiteUrl: (process.env.WEBSITE_URL || '').replace(/\/$/, ''),
   revalidateSecret: process.env.REVALIDATE_SECRET || '',
+  // Booking confirmation emails through Gmail (SMTP_PASS is an app password); empty = no emails
+  mail: {
+    user: (process.env.SMTP_USER || '').trim(),
+    pass: (process.env.SMTP_PASS || '').replace(/\s+/g, ''), // Google shows it in groups of four
+    notify: (process.env.MAIL_NOTIFY || '').trim(),
+  },
   // Razorpay (online payment on the website). Without keys, website bookings are confirmed without payment
   razorpay: {
     keyId: (process.env.RAZORPAY_KEY_ID || '').trim(),
