@@ -12,6 +12,8 @@ router.use('/public', require('./public.routes'));
 router.use('/auth', require('./auth.routes'));
 router.use('/dashboard', require('./dashboard.routes'));
 router.use('/bookings', require('./booking.routes'));
+// Dates closed to bookings — refreshes the website so blocked nights show as unavailable
+router.use('/blocks', revalidateWebsite, require('./block.routes'));
 // Website content — every change refreshes the public site
 router.use('/suites', revalidateWebsite, require('./suite.routes'));
 router.use('/addons', revalidateWebsite, require('./addon.routes'));

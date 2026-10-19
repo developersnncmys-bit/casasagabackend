@@ -2,6 +2,7 @@ const Suite = require('../models/Suite');
 const Addon = require('../models/Addon');
 const Booking = require('../models/Booking');
 const Setting = require('../models/Setting');
+const Block = require('../models/Block');
 const ApiError = require('../helpers/ApiError');
 const { HOLDING_STATUSES } = require('../config/constants');
 
@@ -44,26 +45,60 @@ async function occupancy(checkIn, checkOut, { excludeId, suiteId } = {}) {
   return result;
 }
 
+/** Blocked dates touching any night of [checkIn, checkOut) — blocks cover `from`…`to` inclusive. */
+const blocksDuring = (checkIn, checkOut) => Block.find({ from: { $lt: checkOut }, to: { $gte: checkIn } });
+
+/**
+ * Rooms of a suite taken on the busiest night of [checkIn, checkOut): its bookings that night plus
+ * the rooms blocked that night (a block closes `rooms` rooms, or all of them). Also says whether
+ * blocks were what filled it.
+ */
+function busiestNight(suite, checkIn, checkOut, bookings = [], blocks = []) {
+  const inventory = suite.inventory || 1;
+  const mine = blocks.filter((b) => b.covers(suite));
+  let peak = 0;
+  let blockedPeak = 0;
+  for (let d = checkIn; d < checkOut; d = addDays(d, 1)) {
+    const booked = bookings.filter((b) => b.checkIn <= d && d < b.checkOut).length;
+    const blocked = Math.min(inventory, mine.filter((b) => b.from <= d && d <= b.to).reduce((n, b) => n + (b.rooms || inventory), 0));
+    if (booked + blocked > peak) peak = booked + blocked;
+    blockedPeak = Math.max(blockedPeak, blocked);
+  }
+  return { taken: Math.min(peak, inventory), blocked: blockedPeak, blocks: mine };
+}
+
 /** Every suite with how many rooms are free for the whole stay. */
+
 async function availability(checkIn, checkOut, { excludeId, includeHidden = false } = {}) {
   if (!isDay(checkIn) || !isDay(checkOut) || checkOut <= checkIn) throw ApiError.badRequest('Choose valid check-in and check-out dates');
-  const [suites, taken] = await Promise.all([
+  const [suites, taken, blocks] = await Promise.all([
     Suite.find(includeHidden ? {} : { active: true }).sort({ order: 1 }),
     occupancy(checkIn, checkOut, { excludeId }),
+    blocksDuring(checkIn, checkOut),
   ]);
   return suites.map((s) => {
     const inventory = s.inventory || 1;
-    const booked = taken.get(s._id)?.booked || 0;
-    return { id: s._id, name: s.name, inventory, booked, free: Math.max(inventory - booked, 0), available: booked < inventory };
+    // Bookings and blocked rooms together, on the busiest night of the stay
+    const night = busiestNight(s, checkIn, checkOut, taken.get(s._id)?.bookings, blocks);
+    return { id: s._id, name: s.name, inventory, booked: night.taken, free: Math.max(inventory - night.taken, 0), available: night.taken < inventory, blocked: night.blocked };
   });
 }
 
 /** Refuses a stay that would need more rooms than the suite has. */
 async function assertAvailable(data, excludeId) {
   if (!HOLDING_STATUSES.includes(data.status)) return;
-  const suite = await Suite.findById(data.suite).select('inventory name');
+  const suite = await Suite.findById(data.suite).select('inventory name location');
   const inventory = suite?.inventory || 1;
   const taken = (await occupancy(data.checkIn, data.checkOut, { excludeId, suiteId: data.suite })).get(data.suite);
+  // Blocked dates (Calendar → Block dates) close some or all rooms
+  const night = suite && busiestNight(suite, data.checkIn, data.checkOut, taken?.bookings, await blocksDuring(data.checkIn, data.checkOut));
+  if (night && night.taken >= inventory && night.blocked > 0) {
+    const block = night.blocks[0];
+    const when = block.from === block.to ? block.from : `${block.from} → ${block.to}`;
+    throw ApiError.conflict(
+      `${suite.name} is ${night.blocked < inventory ? 'fully booked or blocked' : 'blocked'} on ${when}${block.reason ? ` (${block.reason})` : ''} — choose other dates`,
+    );
+  }
   if (taken && taken.booked >= inventory) {
     const other = taken.bookings[0];
     throw ApiError.conflict(
