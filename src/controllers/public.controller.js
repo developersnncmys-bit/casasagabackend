@@ -126,8 +126,8 @@ exports.createBooking = catchAsync(async (req, res) => {
 
 // What the guest's confirmation screen shows — no internal fields
 function guestView(booking) {
-  const { ref, suiteName, checkIn, checkOut, nights, guests, addonItems, rate, roomTotal, extraGuests, extraGuestRate, extraGuestTotal, addonTotal, convenienceFee, discount, taxRate, addonTaxAmount, taxAmount, total, amountPaid, status, paymentStatus } = booking.toJSON();
-  return { ref, suiteName, checkIn, checkOut, nights, guests, addonItems, rate, roomTotal, extraGuests, extraGuestRate, extraGuestTotal, addonTotal, convenienceFee, discount, taxRate, addonTaxAmount, taxAmount, total, amountPaid, status, paymentStatus };
+  const { ref, suiteName, checkIn, checkOut, nights, guests, addonItems, rate, roomTotal, extraGuests, extraGuestRate, extraGuestTotal, addonTotal, convenienceFee, discount, discountNote, taxRate, addonTaxAmount, taxAmount, total, amountPaid, status, paymentStatus } = booking.toJSON();
+  return { ref, suiteName, checkIn, checkOut, nights, guests, addonItems, rate, roomTotal, extraGuests, extraGuestRate, extraGuestTotal, addonTotal, convenienceFee, discount, discountNote, taxRate, addonTaxAmount, taxAmount, total, amountPaid, status, paymentStatus };
 }
 
 // What Razorpay Checkout needs to open for this booking

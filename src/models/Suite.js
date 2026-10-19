@@ -20,6 +20,12 @@ const suiteSchema = new mongoose.Schema(
     includedGuests: { type: Number, min: 1, max: 10, default: 2 },
     maxGuests: { type: Number, min: 1, max: 10, default: 4 },
     extraGuestPrice: { type: Number, min: 0, default: 0 },
+    // Offer on the base fee: discountValue % off, or ₹ off per night ('flat'); 0 = none.
+    // discountUntil (YYYY-MM-DD, optional) = last check-in date it applies to
+    discountType: { type: String, enum: ['percent', 'flat'], default: 'percent' },
+    discountValue: { type: Number, min: 0, default: 0 },
+    discountLabel: { type: String, trim: true, maxlength: 40, default: '' },
+    discountUntil: { type: String, default: '' },
     // How many rooms of this suite type exist — that many stays can overlap
     inventory: { type: Number, min: 1, max: 50, default: 1 },
     // Which property the suite is at — an id from Settings → locations (e.g. "banashankari")

@@ -31,7 +31,7 @@ function confirmationHtml(b, { location, policies, contact }) {
     row(`Base fee · ${plural(b.nights, 'night')} × ${inr(b.rate)}`, inr(b.roomTotal)),
     b.extraGuestTotal > 0 && row(`Extra guest${b.extraGuests > 1 ? `s (${b.extraGuests})` : ''} · ${plural(b.nights, 'night')} × ${inr(b.extraGuestRate)}`, inr(b.extraGuestTotal)),
     ...(b.addonItems || []).map((a) => row(esc(a.title), a.price == null ? 'Price on request' : inr(a.price))),
-    b.discount > 0 && row('Discount', `− ${inr(b.discount)}`),
+    b.discount > 0 && row(b.discountNote ? `Discount · ${esc(b.discountNote)}` : 'Discount', `− ${inr(b.discount)}`),
     stayTax > 0 && row(`GST on stay (${b.taxRate}%)`, inr(stayTax)),
     b.addonTaxAmount > 0 && row('GST on add-ons', inr(b.addonTaxAmount)),
     b.convenienceFee > 0 && row('Convenience fee', inr(b.convenienceFee)),

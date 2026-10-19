@@ -110,6 +110,19 @@ async function assertAvailable(data, excludeId) {
 }
 
 /**
+ * The suite's offer for a stay: { amount, note } — % off or ₹ off per night on the base fee,
+ * while the offer runs (discountUntil = last check-in date it covers). Same sums as the website.
+ */
+function suiteOffer(suite, nights, rate, checkIn) {
+  const value = Number(suite.discountValue) || 0;
+  if (!value || !nights || (suite.discountUntil && checkIn > suite.discountUntil)) return { amount: 0, note: '' };
+  const base = nights * rate;
+  const amount = money(Math.min(base, suite.discountType === 'flat' ? value * nights : (base * Math.min(value, 100)) / 100));
+  const what = suite.discountType === 'flat' ? `₹${value.toLocaleString('en-IN')} off per night` : `${value}% off`;
+  return { amount, note: suite.discountLabel ? `${suite.discountLabel} · ${what}` : what };
+}
+
+/**
  * Checks the suite and add-ons exist and works out the bill:
  *   base fee (nights × rate) + extra guests (nights × guests over what the price covers × charge) − discount
  *   + add-ons, GST on each, then the convenience fee (online bookings, after GST).
@@ -175,7 +188,15 @@ async function prepare(data, previous) {
   else if (stayChanged) taxRate = suite.taxRate ?? pricing.taxRate ?? 0;
   else taxRate = previous.taxRate ?? 0;
 
-  const discount = money(data.discount);
+  // Discount: website bookings get the suite's offer (worked out again when the stay changes);
+  // otherwise the amount the admin typed, as agreed
+  let discount = money(data.discount);
+  let discountNote = data.discountNote ?? previous?.discountNote ?? '';
+  if ((data.online ?? previous?.online) && stayChanged && !typed('discount')) {
+    const offer = suiteOffer(suite, nights, rate, data.checkIn);
+    discount = offer.amount;
+    discountNote = offer.note;
+  }
   // GST on the stay (base fee + extra guests − discount) at the suite's rate, and on each add-on at its own rate
   const stayTaxable = Math.max(roomTotal + extraGuestTotal - discount, 0);
   const stayTaxAmount = money((stayTaxable * taxRate) / 100);
@@ -209,6 +230,7 @@ async function prepare(data, previous) {
     addonTotal,
     convenienceFee,
     discount,
+    discountNote: discount > 0 ? discountNote : '',
     taxRate,
     addonTaxAmount,
     taxAmount,
@@ -233,4 +255,4 @@ function stampStatus(data, previousStatus) {
   return out;
 }
 
-module.exports = { prepare, assertAvailable, availability, occupancy, stampStatus, nightsBetween, isDay };
+module.exports = { suiteOffer, prepare, assertAvailable, availability, occupancy, stampStatus, nightsBetween, isDay };
