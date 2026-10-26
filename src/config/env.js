@@ -19,7 +19,12 @@ module.exports = {
     .filter(Boolean),
   // The CasaSaga admin panel and website on Vercel (incl. preview deployments) are
   // always allowed, on top of CORS_ORIGIN — so a fresh deploy works before the env is updated
-  builtInOrigins: [/^https:\/\/casasaga(adminpanel|website)(-[a-z0-9-]+)?\.vercel\.app$/],
+  // Also casasaga.in (website, www, admin) and any localhost port, for running the panel or website on a computer
+  builtInOrigins: [
+    /^https:\/\/casasaga(adminpanel|website)(-[a-z0-9-]+)?\.vercel\.app$/,
+    /^https:\/\/((www|admin)\.)?casasaga\.in$/,
+    /^http:\/\/(localhost|127\.0\.0\.1):\d+$/,
+  ],
   publicUrl: (process.env.PUBLIC_URL || '').replace(/\/$/, ''),
   // The public website, refreshed whenever content changes
   websiteUrl: (process.env.WEBSITE_URL || '').replace(/\/$/, ''),
