@@ -25,7 +25,14 @@ const base = crud(Booking, {
   },
 });
 
-exports.list = base.list;
+// Website bookings whose online payment was never completed aren't shown in the admin panel —
+// they only hold the room while the guest pays (see PAYMENT_HOLD_MINUTES), then lapse
+const UNPAID_ONLINE = { status: 'pending', paymentStatus: 'awaiting' };
+exports.UNPAID_ONLINE = UNPAID_ONLINE;
+exports.list = catchAsync(async (req, res) => {
+  const rows = await Booking.find({ $nor: [UNPAID_ONLINE] }).sort({ createdAt: -1 });
+  res.json({ success: true, data: rows });
+});
 exports.getOne = base.getOne;
 exports.create = base.create;
 exports.update = base.update;

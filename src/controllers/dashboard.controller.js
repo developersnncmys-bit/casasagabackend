@@ -14,8 +14,9 @@ exports.summary = catchAsync(async (req, res) => {
 
   const [monthStays, pending, upcoming, inHouse, counts, bySource] = await Promise.all([
     Booking.find({ status: { $in: EARNING_STATUSES }, checkIn: { $regex: `^${month}` } }).select('total checkIn checkOut'),
-    Booking.countDocuments({ status: 'pending' }),
-    Booking.find({ status: { $in: ['pending', 'confirmed'] }, checkIn: { $gte: today, $lte: in7 } }).sort({ checkIn: 1 }),
+    // Unpaid website bookings (payment not completed) aren't counted or listed
+    Booking.countDocuments({ status: 'pending', paymentStatus: { $ne: 'awaiting' } }),
+    Booking.find({ status: { $in: ['pending', 'confirmed'] }, checkIn: { $gte: today, $lte: in7 }, $nor: [{ status: 'pending', paymentStatus: 'awaiting' }] }).sort({ checkIn: 1 }),
     Booking.find({ status: 'checked-in' }).sort({ checkOut: 1 }),
     Promise.all([Suite.countDocuments(), Addon.countDocuments(), GalleryImage.countDocuments(), Story.countDocuments()]),
     Booking.aggregate([{ $match: { status: { $ne: 'cancelled' } } }, { $group: { _id: '$source', count: { $sum: 1 }, revenue: { $sum: '$total' } } }, { $sort: { count: -1 } }]),

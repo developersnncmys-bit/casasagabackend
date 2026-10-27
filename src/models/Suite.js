@@ -26,6 +26,10 @@ const suiteSchema = new mongoose.Schema(
     discountValue: { type: Number, min: 0, default: 0 },
     discountLabel: { type: String, trim: true, maxlength: 40, default: '' },
     discountUntil: { type: String, default: '' },
+    // Check-in / check-out times for this suite, "14:00" — set by the admin, shown on the booking
+    // page and in the confirmation email; empty = the general policy (Contact & policies)
+    checkInTime: { type: String, default: '', match: [/^$|^([01]\d|2[0-3]):[0-5]\d$/, 'Use a HH:MM time'] },
+    checkOutTime: { type: String, default: '', match: [/^$|^([01]\d|2[0-3]):[0-5]\d$/, 'Use a HH:MM time'] },
     // How many rooms of this suite type exist — that many stays can overlap
     inventory: { type: Number, min: 1, max: 50, default: 1 },
     // Which property the suite is at — an id from Settings → locations (e.g. "banashankari")

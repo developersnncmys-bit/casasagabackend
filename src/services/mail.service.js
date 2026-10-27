@@ -12,6 +12,11 @@ const transporter = () => (transport ||= nodemailer.createTransport({ service: '
 const SITE = (websiteUrl && !/localhost/.test(websiteUrl) ? websiteUrl : 'https://casasagawebsite.vercel.app').replace(/\/$/, '');
 const inr = (n) => `₹${(Number(n) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 const day = (d) => (d ? new Date(`${d}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : '—');
+// "14:00" → "2:00 PM"
+const time = (t) => {
+  const [h, m] = String(t).split(':').map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+};
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 // "Tulum" → "Tulum Suite"; "1 Bedroom Flat" stays as it is (same rule as the website)
@@ -20,8 +25,18 @@ const fullName = (name = '') => (/\s(Suite|Flat|Room|Villa|Apartment|Cottage|Stu
 // Colours of the website's dark theme
 const C = { bg: '#120a0d', card: '#1c1015', line: '#3a2a2c', ink: '#f5ebe2', muted: '#b8a49b', gold: '#d8b56a', gold2: '#f0d9a4', ok: '#6fcf97' };
 
-function confirmationHtml(b, { location, policies, contact }) {
+// The suite's own check-in / check-out time ("From 2:00 PM", "By 11:00 AM"), else the general policy
+const stayTimes = (suite, policies) => {
+  const policy = (label) => (policies || []).find((p) => p.label.toLowerCase() === label)?.value || '';
+  return {
+    in: suite?.checkInTime ? `From ${time(suite.checkInTime)}` : policy('check-in'),
+    out: suite?.checkOutTime ? `By ${time(suite.checkOutTime)}` : policy('check-out'),
+  };
+};
+
+function confirmationHtml(b, { location, policies, contact, suite }) {
   const policy = (label) => (policies || []).find((p) => p.label.toLowerCase() === label)?.value;
+  const times = stayTimes(suite, policies);
   const stayTax = (b.taxAmount || 0) - (b.addonTaxAmount || 0);
   const paid = b.paymentStatus === 'paid' || (b.amountPaid || 0) >= (b.total || 0);
   const row = (label, value, strong) =>
@@ -62,8 +77,8 @@ function confirmationHtml(b, { location, policies, contact }) {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
       ${row('Suite', esc(fullName(b.suiteName || b.suite)))}
       ${location ? row('Location', `${esc(location.name)}${location.mapUrl ? `<br>${link(location.mapUrl, 'Get directions')}` : ''}`) : ''}
-      ${row('Check-in', `${day(b.checkIn)}${policy('check-in') ? `<br><span style="color:${C.muted}">${esc(policy('check-in'))}</span>` : ''}`)}
-      ${row('Check-out', `${day(b.checkOut)}${policy('check-out') ? `<br><span style="color:${C.muted}">${esc(policy('check-out'))}</span>` : ''}`)}
+      ${row('Check-in', `${day(b.checkIn)}${times.in ? `<br><span style="color:${C.muted}">${esc(times.in)}</span>` : ''}`)}
+      ${row('Check-out', `${day(b.checkOut)}${times.out ? `<br><span style="color:${C.muted}">${esc(times.out)}</span>` : ''}`)}
       ${row('Guests', `${plural(b.guests, 'guest')} · ${plural(b.nights, 'night')}`)}
       ${b.occasion ? row('Occasion', esc(b.occasion)) : ''}
       ${b.notes ? row('Your requests', esc(b.notes)) : ''}
@@ -79,13 +94,14 @@ function confirmationHtml(b, { location, policies, contact }) {
 </table></td></tr></table></body></html>`;
 }
 
-function confirmationText(b, { location }) {
+function confirmationText(b, { location, policies, suite }) {
+  const times = stayTimes(suite, policies);
   return [
     `Booking confirmed — ${b.ref}`,
     '',
     `Hello ${b.name.split(' ')[0]}, your stay at CasaSaga is confirmed.`,
     `${fullName(b.suiteName || b.suite)}${location ? `, ${location.name}` : ''}`,
-    `Check-in ${day(b.checkIn)} · Check-out ${day(b.checkOut)} · ${b.guests} guests`,
+    `Check-in ${day(b.checkIn)}${times.in ? ` (${times.in.toLowerCase()})` : ''} · Check-out ${day(b.checkOut)}${times.out ? ` (${times.out.toLowerCase()})` : ''} · ${b.guests} guests`,
     `Total ${inr(b.total)}${b.amountPaid > 0 ? ` · Paid ${inr(b.amountPaid)}` : ''}`,
     '',
     `House rules: ${SITE}/house-rules`,
@@ -100,9 +116,9 @@ function confirmationText(b, { location }) {
 async function sendBookingConfirmation(booking) {
   if (!enabled() || !booking?.email) return false;
   try {
-    const [settings, suite] = await Promise.all([Setting.get(), Suite.findById(booking.suite).select('location')]);
+    const [settings, suite] = await Promise.all([Setting.get(), Suite.findById(booking.suite).select('location checkInTime checkOutTime')]);
     const location = (settings.locations || []).find((l) => l.id === suite?.location);
-    const ctx = { location, policies: settings.policies, contact: settings.contact };
+    const ctx = { location, policies: settings.policies, contact: settings.contact, suite };
     await transporter().sendMail({
       from: { name: 'CasaSaga', address: mail.user },
       to: booking.email,
