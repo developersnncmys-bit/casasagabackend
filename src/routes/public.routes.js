@@ -13,6 +13,7 @@ router.get('/availability', ctrl.availability);
 router.post('/bookings', formLimit, ctrl.createBooking);
 // Online payment (Razorpay): Checkout's success reply, and Razorpay's own notification
 router.post('/bookings/:ref/pay', formLimit, ctrl.confirmPayment);
+router.get('/bookings/:ref/payment', ctrl.paymentStatus);
 router.post('/razorpay/webhook', ctrl.razorpayWebhook);
 
 module.exports = router;

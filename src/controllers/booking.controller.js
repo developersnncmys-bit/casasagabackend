@@ -92,6 +92,17 @@ exports.invoice = catchAsync(async (req, res) => {
   res.json({ success: true, data: { booking: doc, settings } });
 });
 
+/**
+ * POST /api/bookings/check-payments — asks Razorpay about every website booking still waiting for
+ * payment and confirms the ones that were paid. Responds with how many were confirmed.
+ */
+exports.checkPayments = catchAsync(async (req, res) => {
+  const payments = require('../services/razorpay.service');
+  if (!payments.enabled()) throw ApiError.badRequest('Razorpay isn’t set up on the server (RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET)');
+  const { syncAwaiting } = require('../services/payment-sync.service');
+  res.json({ success: true, data: { confirmed: await syncAwaiting() } });
+});
+
 /** POST /api/bookings/:id/email — (re)sends the booking confirmation email to the guest. */
 exports.emailConfirmation = catchAsync(async (req, res) => {
   const mail = require('../services/mail.service');

@@ -3,6 +3,7 @@ require('dotenv').config();
 const app = require('./src/app');
 const { connectDB } = require('./src/config/db');
 const { port } = require('./src/config/env');
+const { startPaymentSync } = require('./src/services/payment-sync.service');
 
 // Nothing listens until the database is up
 connectDB()
@@ -10,6 +11,8 @@ connectDB()
     const server = app.listen(port, () => {
       console.log(`CasaSaga API listening on http://localhost:${port}`);
     });
+    // Confirm bookings that were paid in Razorpay but whose confirmation never reached us
+    startPaymentSync();
 
     const shutdown = (signal) => () => {
       console.log(`\n${signal} received — closing the server`);

@@ -5,6 +5,7 @@ const { prepare, assertAvailable, availability, stampStatus } = require('../serv
 const { WEBSITE_SOURCES, PAYMENT_HOLD_MINUTES, PAYMENT_TEST_EMAILS, PAYMENT_TEST_EVERYONE } = require('../config/constants');
 const payments = require('../services/razorpay.service');
 const { sendBookingConfirmation } = require('../services/mail.service');
+const { markPaid, syncPayment } = require('../services/payment-sync.service');
 
 const str = (v, max = 2000) => String(v ?? '').trim().slice(0, max);
 const strip = ({ active, order, createdAt, updatedAt, ...rest }) => rest;
@@ -140,25 +141,17 @@ const checkoutFor = (booking) => ({
   prefill: { name: booking.name, contact: booking.phone, email: booking.email || undefined },
 });
 
-/** Marks a booking paid in full and confirmed (once — repeat calls change nothing). */
-async function markPaid(booking, paymentId) {
-  if (booking.paymentStatus === 'paid') return booking;
-  booking.paymentStatus = 'paid';
-  booking.razorpayPaymentId = paymentId;
-  booking.paidAt = new Date();
-  booking.amountPaid = booking.onlineAmount || booking.total; // ₹1 for a test booking
-  booking.paymentMode = 'razorpay';
-  booking.holdUntil = undefined;
-  if (booking.status === 'pending' || booking.status === 'cancelled') {
-    booking.status = 'confirmed';
-    booking.confirmedAt = booking.confirmedAt || new Date();
-    booking.cancelledAt = undefined;
-  }
-  await booking.save();
-  // The stay is confirmed now that it's paid — email the confirmation (once)
-  if (!booking.confirmationEmailAt) await sendBookingConfirmation(booking);
-  return booking;
-}
+/**
+ * GET /api/public/bookings/:ref/payment?order= — has this booking been paid? Asks Razorpay when it's
+ * still waiting, so a guest coming back from their UPI app sees it confirmed. The order id (only the
+ * guest's own page has it) keeps others from looking bookings up by reference.
+ */
+exports.paymentStatus = catchAsync(async (req, res) => {
+  const booking = await Booking.findOne({ ref: str(req.params.ref, 20), razorpayOrderId: str(req.query.order, 60) || '-' });
+  if (!booking) throw ApiError.notFound('Booking not found');
+  if (booking.paymentStatus === 'awaiting') await syncPayment(booking);
+  res.json({ success: true, data: guestView(booking) });
+});
 
 /**
  * POST /api/public/bookings/:ref/pay — Checkout's success reply

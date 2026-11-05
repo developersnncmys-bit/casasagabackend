@@ -32,6 +32,28 @@ async function createOrder({ amount, receipt, notes }) {
   return data; // { id: "order_…", amount, currency, … }
 }
 
+/**
+ * The payments made against an order, as Razorpay has them (status "captured" = money received).
+ * https://razorpay.com/docs/api/orders/fetch-payments/ — null when Razorpay can't be reached.
+ */
+async function fetchOrderPayments(orderId) {
+  try {
+    const res = await fetch(`https://api.razorpay.com/v1/orders/${encodeURIComponent(orderId)}/payments`, {
+      headers: { Authorization: 'Basic ' + Buffer.from(`${razorpay.keyId}:${razorpay.keySecret}`).toString('base64') },
+      signal: AbortSignal.timeout(10000),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.error('[razorpay] fetch payments failed', orderId, res.status, data.error?.description);
+      return null;
+    }
+    return data.items || [];
+  } catch (err) {
+    console.error('[razorpay] fetch payments failed', orderId, err.message);
+    return null;
+  }
+}
+
 // Constant-time comparison of two hex signatures
 const same = (a, b) => {
   const x = Buffer.from(String(a || ''), 'utf8');
@@ -46,4 +68,4 @@ const verifyPayment = (orderId, paymentId, signature) => same(hmac(razorpay.keyS
 /** A webhook really came from Razorpay: HMAC-SHA256(raw body, webhook secret). */
 const verifyWebhook = (rawBody, signature) => Boolean(razorpay.webhookSecret) && same(hmac(razorpay.webhookSecret, rawBody), signature);
 
-module.exports = { enabled, createOrder, verifyPayment, verifyWebhook, keyId: () => razorpay.keyId };
+module.exports = { enabled, createOrder, fetchOrderPayments, verifyPayment, verifyWebhook, keyId: () => razorpay.keyId };
