@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const ApiError = require('../helpers/ApiError');
-const { safeName, bucket } = require('./image.service');
+const { safeName, bucket, saveBuffer, SHRINK_TYPES } = require('./image.service');
 const { TYPES, VIDEO_TYPES } = require('../middleware/upload');
 
 /**
@@ -55,6 +55,14 @@ async function finish(uploadId) {
   if (!session) throw ApiError.notFound('Upload not found — start again');
   const count = await parts().countDocuments({ uploadId });
   if (count !== session.total) throw ApiError.badRequest(`Only ${count} of ${session.total} pieces arrived — try again`);
+
+  // A big photo (e.g. 4 MB from a phone) is joined and shrunk before it's stored
+  if (SHRINK_TYPES.includes(session.type)) {
+    const pieces = await parts().find({ uploadId }).sort({ index: 1 }).toArray();
+    await saveBuffer(session.filename, Buffer.concat(pieces.map((p) => Buffer.from(p.data.buffer || p.data))), session.type);
+    await Promise.all([parts().deleteMany({ uploadId }), sessions().deleteOne({ _id: uploadId })]);
+    return session.filename;
+  }
 
   await new Promise((resolve, reject) => {
     const out = bucket().openUploadStream(session.filename, { metadata: { contentType: session.type, size: session.size } });
