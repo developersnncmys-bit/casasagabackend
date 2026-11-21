@@ -67,8 +67,6 @@ exports.createBooking = catchAsync(async (req, res) => {
   if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(str(b.email, 160))) throw ApiError.badRequest('Enter a valid email address for your confirmation');
   const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10); // a day's grace for time zones
   if (str(b.checkIn, 10) < yesterday) throw ApiError.badRequest("Check-in can't be in the past");
-  const stayNights = Math.round((new Date(str(b.checkOut, 10)) - new Date(str(b.checkIn, 10))) / 86400000);
-  if (stayNights > 30) throw ApiError.badRequest('Online bookings are up to 30 nights — call us for longer stays');
 
   // Only add-ons offered at this suite's location (e.g. decorations at Banashankari 6th Stage only)
   const asked = Array.isArray(b.addons) ? b.addons.map((a) => str(a, 60)) : [];
